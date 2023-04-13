@@ -17,7 +17,7 @@ public class MockFactory {
 
     private final ByteBuddy byteBuddy = new ByteBuddy();
 
-    public <T> T createMock(Class<T> t, List<CallMetadata> callList) {
+    public <T> T createMock(Class<T> t, List<InvocationDetails> callList) {
 
         Class<? extends T> classWithInterceptor = byteBuddy.subclass(t)
                 .method(any())

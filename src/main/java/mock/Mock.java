@@ -1,8 +1,5 @@
 package mock;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class Mock {
 
     static final Mocker mocker = new Mocker();
@@ -11,7 +8,7 @@ public class Mock {
         return mocker.mock(t);
     }
 
-    public static <T> CallMetadata<T> when(T methodCall) {
+    public static <T> InvocationDetails<T> when(T methodCall) {
         return mocker.when(methodCall);
     }
 }

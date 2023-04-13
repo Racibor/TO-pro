@@ -5,7 +5,7 @@ import java.util.List;
 
 public class Mocker {
 
-    private final List<CallMetadata> callList = new ArrayList<>();
+    private final List<InvocationDetails> callList = new ArrayList<>();
 
     private final MockFactory mockFactory = new MockFactory();
 
@@ -14,7 +14,7 @@ public class Mocker {
         return result;
     }
 
-    public <T> CallMetadata<T> when(T methodCall) {
+    public <T> InvocationDetails<T> when(T methodCall) {
         return callList.get(callList.size() - 1);
     }
 

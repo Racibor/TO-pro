@@ -1,10 +1,8 @@
-public class Car {
+public abstract class Car {
 
     public Car() {
 
     }
 
-    public String wrum() {
-        return "5";
-    }
+    public abstract Long wrum(Integer a, String test, Integer non);
 }
