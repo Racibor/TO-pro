@@ -1,0 +1,16 @@
+- wyrzucanie wyjątków
+- zliczanie i weryfikacja wywołań (argumenty itp)
+- spy i otaczanie innych obiektów
+
+Pełna lista funkcjonalności
+- tworzenie mocków z klas zwykłych, abstrakcyjnych i interfejsów
+- definiowanie wartości zwracanych przez funkcję
+- definiowanie zachowania funkcji
+- definiowanie wyrzucania wyjątku
+- dopasowanie zachowania w zależności od argumentów podanych funkcji
+- weryfikacja wywołań
+ - badanie ilości wywołań
+ - sprawdzanie argumentów
+- "szpiegowanie" obiektów
+ - dynamiczne nadpisywanie metod i wyników
+ -
