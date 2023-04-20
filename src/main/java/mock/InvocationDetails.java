@@ -25,7 +25,7 @@ public class InvocationDetails<T> {
 
 
     public void thenReturn(T result) {
-        this.result = metadate -> result;
+        this.result = metadata -> result;
     }
 
     public void thenAnswer(MockedExpression<T> function) {
@@ -33,12 +33,12 @@ public class InvocationDetails<T> {
     }
 
     public void thenThrow(Class<? extends Throwable> throwable) {
-//        this.result = metadata -> {
-//            throw objenesis.newInstance(throwable);
-//        };
+        this.result = metadata -> {
+            throw objenesis.newInstance(throwable);
+        };
     }
 
-    public T getResult(CallMetadata callMetadata){
+    public T getResult(CallMetadata callMetadata) throws Throwable{
         MockedMetadata mockedMethod = new MockedMetadata(callMetadata);
         return result.apply(mockedMethod);
     }

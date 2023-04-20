@@ -17,7 +17,7 @@ public class MockMethodInterceptor {
         this.invocationDetailsList = callMetadataList;
     }
 
-    public Object invoke(Object mock, Method invokedMethod, Object[] arguments) {
+    public Object invoke(Object mock, Method invokedMethod, Object[] arguments) throws Throwable {
         List<Predicate> argumentPredicates = new ArrayList<>();
         for (Object arg : arguments) {
             if (arg == null || arg == "") {
