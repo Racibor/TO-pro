@@ -9,9 +9,10 @@ public class InterceptorDelegate {
     public static Object intercept(@This Object mock,
                                    @FieldValue("interceptor") MockMethodInterceptor interceptor,
                                    @Origin Method invokedMethod,
-                                   @AllArguments Object[] arguments) throws Throwable {
+                                   @AllArguments Object[] arguments,
+                                   @SuperMethod Method superMethod) throws Throwable {
 
-        return interceptor.invoke(mock, invokedMethod, arguments);
+        return interceptor.invoke(mock, invokedMethod, arguments, superMethod);
     }
 
 }

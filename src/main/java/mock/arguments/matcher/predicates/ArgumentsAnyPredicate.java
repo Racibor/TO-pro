@@ -7,4 +7,5 @@ public class ArgumentsAnyPredicate<T> implements Predicate<T> {
     public boolean test(T t) {
         return true;
     }
+
 }

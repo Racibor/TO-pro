@@ -29,8 +29,26 @@ public class MockFactory {
                 .load(getClass().getClassLoader(), ClassLoadingStrategy.Default.WRAPPER).getLoaded();
 
         T instance = objenesis.newInstance(classWithInterceptor);//(T) classWithInterceptor.getClass().getConstructor().newInstance();
-        ((Interceptable) instance).setInterceptor(new MockMethodInterceptor(callList));
+        ((Interceptable) instance).setInterceptor(new MockMethodInterceptor(callList, false));
 
         return instance;
     }
+
+    public <T> T createSpy(Class<T> t, List<InvocationDetails> callList) {
+
+        Class<? extends T> classWithInterceptor = byteBuddy.subclass(t)
+                .method(any())
+                .intercept(MethodDelegation.to(InterceptorDelegate.class))
+                .defineField("interceptor", MockMethodInterceptor.class, PRIVATE)
+                .implement(Interceptable.class)
+                .intercept(FieldAccessor.ofBeanProperty())
+                .make()
+                .load(getClass().getClassLoader(), ClassLoadingStrategy.Default.WRAPPER).getLoaded();
+
+        T instance = objenesis.newInstance(classWithInterceptor);//(T) classWithInterceptor.getClass().getConstructor().newInstance();
+        ((Interceptable) instance).setInterceptor(new MockMethodInterceptor(callList, true));
+
+        return instance;
+    }
+
 }

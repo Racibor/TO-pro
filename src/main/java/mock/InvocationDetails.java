@@ -3,44 +3,94 @@ package mock;
 import mock.arguments.matcher.ArgumentsPredicate;
 import mock.methods.MockedExpression;
 import mock.methods.MockedMetadata;
+import mock.verification.DefaultVerificationStrategy;
+import mock.verification.VerificationStrategy;
 import org.objenesis.ObjenesisStd;
 
-import java.lang.reflect.InvocationTargetException;
-import java.util.Objects;
-import java.util.function.Function;
+import java.lang.reflect.Method;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class InvocationDetails<T> {
     private final ObjenesisStd objenesis = new ObjenesisStd();
 
     private final CallMetadata callMetadata;
 
-    private final ArgumentsPredicate argumentsPredicate;
+    private final List<CallMetadata> previousCalls;
 
-    private MockedExpression<T> result;
-
-    public InvocationDetails(CallMetadata callMetadata, ArgumentsPredicate argumentsPredicate) {
-        this.callMetadata = callMetadata;
-        this.argumentsPredicate = argumentsPredicate;
+    public List<CallMetadata> getPreviousCalls() {
+        return previousCalls;
     }
 
+    private final Map<ArgumentsPredicate, MockedExpression<T>> expressions;
+
+    private final MockedExpression<T> defaultMethod;
+
+    private ArgumentsPredicate lastPredicate = null;
+
+    public VerificationStrategy getVerificationStrategy() {
+        return verificationStrategy;
+    }
+
+    private VerificationStrategy verificationStrategy = new DefaultVerificationStrategy();
+
+    private final AtomicInteger invokationCount;
+
+    private boolean whenCalled = false;
+
+    public InvocationDetails(CallMetadata callMetadata, Method defaultMethod) {
+        this.callMetadata = callMetadata;
+        this.defaultMethod = metadata -> (T) defaultMethod.invoke(metadata.getMock(), metadata.getArguments());
+        invokationCount = new AtomicInteger(0);
+        previousCalls = new ArrayList<>();
+        expressions = new HashMap<>();
+    }
+
+    public void setLastPredicate(ArgumentsPredicate argumentsPredicate) {
+        this.lastPredicate = argumentsPredicate;
+    }
+
+    public void setVerificationStrategy(VerificationStrategy verificationStrategy) {
+        this.verificationStrategy = verificationStrategy;
+    }
 
     public void thenReturn(T result) {
-        this.result = metadata -> result;
+        if (lastPredicate == null) {
+            throw new RuntimeException();
+        }
+        expressions.put(lastPredicate, metadata -> result);
     }
 
     public void thenAnswer(MockedExpression<T> function) {
-        this.result = function;
+        if (lastPredicate == null) {
+            throw new RuntimeException();
+        }
+        expressions.put(lastPredicate, function);
     }
 
     public void thenThrow(Class<? extends Throwable> throwable) {
-        this.result = metadata -> {
+        if (lastPredicate == null) {
+            throw new RuntimeException();
+        }
+        expressions.put(lastPredicate, metadata -> {
             throw objenesis.newInstance(throwable);
-        };
+        });
     }
 
-    public T getResult(CallMetadata callMetadata) throws Throwable{
+    public T getResult(CallMetadata callMetadata, boolean register) throws Throwable {
+        if (register) {
+            previousCalls.add(callMetadata);
+        }
+        verificationStrategy.verify(this);
+        invokationCount.incrementAndGet();
+
         MockedMetadata mockedMethod = new MockedMetadata(callMetadata);
-        return result.apply(mockedMethod);
+        return expressions.keySet().stream()
+                .filter(predicate -> predicate.test(callMetadata))
+                .map(expressions::get)
+                .findFirst()
+                .orElse(defaultMethod)
+                .apply(mockedMethod);
     }
 
     public boolean test(CallMetadata callMetadata) {
@@ -50,7 +100,7 @@ public class InvocationDetails<T> {
         if (!this.callMetadata.getMethodName().equals(callMetadata.getMethodName())) {
             return false;
         }
-        return argumentsPredicate.test(callMetadata);
+        return Arrays.equals(this.callMetadata.getArgumentTypes(), callMetadata.getArgumentTypes());
     }
 
     @Override
@@ -58,11 +108,11 @@ public class InvocationDetails<T> {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         InvocationDetails<?> that = (InvocationDetails<?>) o;
-        return Objects.equals(callMetadata, that.callMetadata) && Objects.equals(result, that.result);
+        return Objects.equals(objenesis, that.objenesis) && Objects.equals(callMetadata, that.callMetadata) && Objects.equals(previousCalls, that.previousCalls) && Objects.equals(expressions, that.expressions) && Objects.equals(lastPredicate, that.lastPredicate) && Objects.equals(verificationStrategy, that.verificationStrategy) && Objects.equals(invokationCount, that.invokationCount);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(callMetadata, result);
+        return Objects.hash(objenesis, callMetadata, previousCalls, expressions, lastPredicate, verificationStrategy, invokationCount);
     }
 }
