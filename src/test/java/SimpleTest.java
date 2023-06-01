@@ -1,5 +1,6 @@
 import mock.Mock;
 import mock.arguments.matcher.Matcher;
+import mock.verification.InvocationAtLeastFilteredVerificationStrategy;
 import mock.verification.InvokationAtLeastVerificationStrateg;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -27,7 +28,7 @@ public class SimpleTest {
 
         Assertions.assertEquals(arg11 + arg22, car.wrum(arg11, "test", arg22));
         Assertions.assertNotEquals(arg11 + arg22, car.wrum(arg11, "nonTest", arg22));
-        Mock.verify(car, new InvokationAtLeastVerificationStrateg(2)).wrum(arg11, "nonTest", arg22);
+        Mock.verify(car, new InvocationAtLeastFilteredVerificationStrategy(2)).wrum(arg11, Matcher.any(), arg22);
     }
 
     @Test

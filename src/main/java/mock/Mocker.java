@@ -1,5 +1,6 @@
 package mock;
 
+import mock.verification.FilteredVerificationStrategy;
 import mock.verification.InvokationTimesVerificationStrategy;
 import mock.verification.VerificationStrategy;
 
@@ -10,6 +11,12 @@ public class Mocker {
 
     private final List<InvocationDetails> callList = new ArrayList<>();
 
+    private static final ThreadLocal<MockingProgress> mockingProgress = new ThreadLocal<>() {
+        @Override
+        protected MockingProgress initialValue() {
+            return new MockingProgress();
+        }
+    };
     private final MockFactory mockFactory = new MockFactory();
 
     public <T> T mock(Class<T> t) {
@@ -23,19 +30,20 @@ public class Mocker {
     }
 
     public <T> InvocationDetails<T> when(T methodCall) {
-        return callList.get(callList.size() - 1);
+        MockContainer.register(MockingProgress.getLastMockHash(), MockingProgress.getLastInvocation());
+        return MockingProgress.getLastInvocation();
     }
 
     public <T> T verify(T mock) {
-        MockMethodInterceptor.veryfying = true;
-        //return callList.get(callList.size() - 1);
+        MockingProgress.veryfying = true;
         return mock;
     }
 
-    public <T> T verify(T mock, VerificationStrategy verificationStrategy) {
-        MockMethodInterceptor.veryfying = true;
-        InvocationDetails invocationDetails = callList.get(callList.size() - 1);
-        invocationDetails.setVerificationStrategy(verificationStrategy);
+    public <T> T verify(T mock, FilteredVerificationStrategy verificationStrategy) {
+        MockingProgress.veryfying = true;
+        MockingProgress.veryfyingMulti = true;
+        InvocationDetails invocationDetails = MockingProgress.getLastInvocation();
+        MockingProgress.setFilteredVerificationStrategy(verificationStrategy);
         return mock;
     }
 

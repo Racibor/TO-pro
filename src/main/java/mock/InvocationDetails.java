@@ -78,11 +78,15 @@ public class InvocationDetails<T> {
     }
 
     public T getResult(CallMetadata callMetadata, boolean register) throws Throwable {
-        if (register) {
+        if (register && !MockingProgress.veryfying) {
             previousCalls.add(callMetadata);
         }
         verificationStrategy.verify(this);
+        this.verificationStrategy = x -> {};
         invokationCount.incrementAndGet();
+
+        MockingProgress.veryfyingMulti = false;
+        MockingProgress.veryfying = false;
 
         MockedMetadata mockedMethod = new MockedMetadata(callMetadata);
         return expressions.keySet().stream()
