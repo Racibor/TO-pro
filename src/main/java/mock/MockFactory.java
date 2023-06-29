@@ -6,6 +6,7 @@ import net.bytebuddy.implementation.FieldAccessor;
 import net.bytebuddy.implementation.MethodDelegation;
 import org.objenesis.ObjenesisStd;
 
+import java.util.Date;
 import java.util.List;
 
 import static net.bytebuddy.description.modifier.Visibility.PRIVATE;
@@ -28,8 +29,10 @@ public class MockFactory {
                 .make()
                 .load(getClass().getClassLoader(), ClassLoadingStrategy.Default.WRAPPER).getLoaded();
 
+        String mockHash = t.getName() + new Date().getTime();
+
         T instance = objenesis.newInstance(classWithInterceptor);//(T) classWithInterceptor.getClass().getConstructor().newInstance();
-        ((Interceptable) instance).setInterceptor(new MockMethodInterceptor(callList, false));
+        ((Interceptable) instance).setInterceptor(new MockMethodInterceptor(callList, false, mockHash));
 
         return instance;
     }
@@ -45,8 +48,10 @@ public class MockFactory {
                 .make()
                 .load(getClass().getClassLoader(), ClassLoadingStrategy.Default.WRAPPER).getLoaded();
 
+        String mockHash = t.getName() + new Date().getTime();
+
         T instance = objenesis.newInstance(classWithInterceptor);//(T) classWithInterceptor.getClass().getConstructor().newInstance();
-        ((Interceptable) instance).setInterceptor(new MockMethodInterceptor(callList, true));
+        ((Interceptable) instance).setInterceptor(new MockMethodInterceptor(callList, true, mockHash));
 
         return instance;
     }

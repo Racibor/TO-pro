@@ -1,6 +1,8 @@
 package mock;
 
 import mock.mem.CopyUtil;
+import mock.methods.MockedExpression;
+import mock.verification.FilteredVerificationStrategy;
 import mock.verification.VerificationStrategy;
 
 public class Mock {
@@ -19,8 +21,20 @@ public class Mock {
         return mocker.verify(mock);
     }
 
-    public static <T> T verify(T mock, VerificationStrategy verificationStrategy) {
+    public static <T> T verify(T mock, FilteredVerificationStrategy verificationStrategy) {
         return mocker.verify(mock, verificationStrategy);
+    }
+
+    public static DoReturnWhenDecorator doReturn(Object toReturn) {
+        return mocker.doReturn(toReturn);
+    }
+
+    public static DoReturnWhenDecorator doAnswer(MockedExpression toReturn) {
+        return mocker.doAnswer(toReturn);
+    }
+
+    public static DoReturnWhenDecorator doThrow(Class<? extends Throwable> throwable) {
+        return mocker.doThrow(throwable);
     }
 
     public static <T> T spy(T object) {

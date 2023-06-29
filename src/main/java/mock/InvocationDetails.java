@@ -22,11 +22,9 @@ public class InvocationDetails<T> {
         return previousCalls;
     }
 
-    private final Map<ArgumentsPredicate, MockedExpression<T>> expressions;
+    private final Map<ArgumentsPredicate, Queue<MockedExpression<T>>> expressions;
 
     private final MockedExpression<T> defaultMethod;
-
-    private ArgumentsPredicate lastPredicate = null;
 
     public VerificationStrategy getVerificationStrategy() {
         return verificationStrategy;
@@ -46,51 +44,83 @@ public class InvocationDetails<T> {
         expressions = new HashMap<>();
     }
 
+    public void manualIncrementInvocationCount() {
+        invokationCount.incrementAndGet();
+    }
+
+    public void manualDecrementInvocationCount() {
+        invokationCount.getAndDecrement();
+    }
+
     public void setLastPredicate(ArgumentsPredicate argumentsPredicate) {
-        this.lastPredicate = argumentsPredicate;
+        //this.lastPredicate.set(argumentsPredicate);
     }
 
     public void setVerificationStrategy(VerificationStrategy verificationStrategy) {
         this.verificationStrategy = verificationStrategy;
     }
 
-    public void thenReturn(T result) {
-        if (lastPredicate == null) {
+    public InvocationDetails<T> thenReturn(T result) {
+        if (Mocker.getMockingProgress().getLastPredicate() == null) {
             throw new RuntimeException();
         }
-        expressions.put(lastPredicate, metadata -> result);
+        getAnswerQueue(Mocker.getMockingProgress().getLastPredicate()).offer(metadata -> result);
+        return this;
     }
 
-    public void thenAnswer(MockedExpression<T> function) {
-        if (lastPredicate == null) {
+    public InvocationDetails<T> thenAnswer(MockedExpression<T> function) {
+        if (Mocker.getMockingProgress().getLastPredicate() == null) {
             throw new RuntimeException();
         }
-        expressions.put(lastPredicate, function);
+        getAnswerQueue(Mocker.getMockingProgress().getLastPredicate()).offer(function);
+        return this;
     }
 
-    public void thenThrow(Class<? extends Throwable> throwable) {
-        if (lastPredicate == null) {
+    public InvocationDetails<T> thenThrow(Class<? extends Throwable> throwable) {
+        if (Mocker.getMockingProgress().getLastPredicate() == null) {
             throw new RuntimeException();
         }
-        expressions.put(lastPredicate, metadata -> {
+        getAnswerQueue(Mocker.getMockingProgress().getLastPredicate()).offer(metadata -> {
             throw objenesis.newInstance(throwable);
         });
+        return this;
+    }
+
+    private Queue<MockedExpression<T>> getAnswerQueue(ArgumentsPredicate argumentsPredicate) {
+        ArgumentsPredicate basePredicate = expressions.keySet()
+                .stream()
+                .filter(predicate -> predicate.equals(argumentsPredicate))
+                .findFirst()
+                .orElse(argumentsPredicate);
+
+        return expressions.computeIfAbsent(basePredicate, predicate -> new LinkedList<>());
     }
 
     public T getResult(CallMetadata callMetadata, boolean register) throws Throwable {
-        if (register) {
+        if (register && !Mocker.getMockingProgress().veryfying) {
             previousCalls.add(callMetadata);
         }
         verificationStrategy.verify(this);
+        this.verificationStrategy = x -> {};
         invokationCount.incrementAndGet();
 
+        Mocker.getMockingProgress().veryfyingMulti = false;
+        Mocker.getMockingProgress().veryfying = false;
+
         MockedMetadata mockedMethod = new MockedMetadata(callMetadata);
-        return expressions.keySet().stream()
+        Queue<MockedExpression<T>> expressionQueue = expressions.keySet().stream()
                 .filter(predicate -> predicate.test(callMetadata))
                 .map(expressions::get)
                 .findFirst()
-                .orElse(defaultMethod)
-                .apply(mockedMethod);
+                .orElse(new LinkedList<>());
+
+        if (expressionQueue.isEmpty()) {
+            return defaultMethod.apply(mockedMethod);
+        } else {
+            return expressionQueue.size() == 1
+                    ? expressionQueue.peek().apply(mockedMethod)
+                    : expressionQueue.poll().apply(mockedMethod);
+        }
     }
 
     public boolean test(CallMetadata callMetadata) {
@@ -108,11 +138,11 @@ public class InvocationDetails<T> {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         InvocationDetails<?> that = (InvocationDetails<?>) o;
-        return Objects.equals(objenesis, that.objenesis) && Objects.equals(callMetadata, that.callMetadata) && Objects.equals(previousCalls, that.previousCalls) && Objects.equals(expressions, that.expressions) && Objects.equals(lastPredicate, that.lastPredicate) && Objects.equals(verificationStrategy, that.verificationStrategy) && Objects.equals(invokationCount, that.invokationCount);
+        return Objects.equals(objenesis, that.objenesis) && Objects.equals(callMetadata, that.callMetadata) && Objects.equals(previousCalls, that.previousCalls) && Objects.equals(expressions, that.expressions) && Objects.equals(verificationStrategy, that.verificationStrategy) && Objects.equals(invokationCount, that.invokationCount);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(objenesis, callMetadata, previousCalls, expressions, lastPredicate, verificationStrategy, invokationCount);
+        return Objects.hash(objenesis, callMetadata, previousCalls, expressions, verificationStrategy, invokationCount);
     }
 }
