@@ -35,46 +35,19 @@ public class CopyUtil {
 
     }
 
-    private static Object get(Field field, Object target) throws IllegalAccessException {
+    private static Object get(Field field, Object target) {
         setAccesible(field, true);
 
-        Object var3;
+        Object ret;
         try {
-            var3 = field.get(target);
-        } catch (IllegalArgumentException | IllegalAccessException var8) {
-            throw var8;
-        } catch (RuntimeException var9) {
-            throw new IllegalStateException("Could not read " + field + " from " + target, var9);
+            ret = field.get(target);
+        } catch(Exception e) {
+            throw new IllegalStateException("Could not read " + field + " from " + target);
         } finally {
             setAccesible(field, false);
         }
 
-        return var3;
-//        //setAccesible(field, true);
-//
-//        Object var3;
-//        try {
-//            MethodHandles.Lookup lookup = MethodHandles.lookup();
-//            MethodHandle getter = MethodHandles
-//                    .privateLookupIn(field.getDeclaringClass(), lookup)
-//                    .unreflectGetter(field);
-//            //getter.bindTo(field.getDeclaringClass());
-//            var3 = getter.invokeExact();
-//            return var3;
-//            //var3 = field.get(target);
-//        } catch (IllegalArgumentException | IllegalAccessException var8) {
-//            var8.printStackTrace();;
-//            throw var8;
-//        } catch (RuntimeException var9) {
-//            var9.printStackTrace();
-//            throw new IllegalStateException("Could not read " + field + " from " + target, var9);
-//        } catch (Throwable e) {
-//            e.printStackTrace();
-//        } finally {
-//            //setAccesible(field, false);
-//        }
-//
-//        return null;
+        return ret;
     }
 
     private static void set(Field field, Object target, Object value) throws IllegalAccessException {
@@ -82,10 +55,6 @@ public class CopyUtil {
 
         try {
             field.set(target, value);
-        } catch (IllegalArgumentException | IllegalAccessException var9) {
-            throw var9;
-        } catch (RuntimeException var10) {
-            throw new IllegalStateException("Could not write " + field + " to " + target, var10);
         } finally {
             setAccesible(field, false);
         }
@@ -95,8 +64,8 @@ public class CopyUtil {
     private static void setAccesible(AccessibleObject object, boolean value) {
         try {
             object.setAccessible(value);
-        } catch (RuntimeException var3) {
-            var3.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
     }
