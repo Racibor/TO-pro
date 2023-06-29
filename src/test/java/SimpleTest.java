@@ -1,68 +1,198 @@
+import mock.InvocationDetails;
 import mock.Mock;
+import mock.MockContainer;
+import mock.arguments.captor.ArgumentCaptor;
 import mock.arguments.matcher.Matcher;
 import mock.verification.InvocationAtLeastFilteredVerificationStrategy;
-import mock.verification.InvokationAtLeastVerificationStrateg;
+import mock.verification.InvokationTimesFilteredVerificationStrategy;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentMatcher;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
+
+import static org.mockito.ArgumentMatchers.any;
 
 public class SimpleTest {
 
     @Test
-    public void answerTest() {
+    public void thenReturn() {
         Car car = Mock.mock(Car.class);
-        Integer arg11 = 5;
-        Integer arg22 = 5;
-        Mock.when(car.wrum(Matcher.any(), Matcher.eq("test"), Matcher.any())).thenAnswer(metadata -> {
-            Object[] arguments = metadata.getArguments();
-            Integer arg1 = (Integer) arguments[0];
-            Integer arg3 = (Integer) arguments[2];
-            System.out.println("mocked message: " + ((String)arguments[1]));
-            return (long) (arg1 + arg3);
-        });
+        Assertions.assertEquals(0, car.getGear());
 
-        Assertions.assertEquals(arg11 + arg22, car.wrum(arg11, "test", arg22));
-        Assertions.assertNotEquals(arg11 + arg22, car.wrum(arg11, "nonTest", arg22));
-        Mock.verify(car, new InvocationAtLeastFilteredVerificationStrategy(2)).wrum(arg11, Matcher.any(), arg22);
+        Mock.when(car.getGear()).thenReturn(1);
+        Assertions.assertEquals(1, car.getGear());
     }
 
     @Test
-    public void throwableTest() {
-        ArrayList<String> l = new ArrayList<>();
-        ArrayList<String> spy = Mock.spy(l);
+    public void thenAnswer() {
+        Car car = Mock.mock(Car.class);
 
-        /*TestContainer<String> temp = new TestContainer<>(new ArrayList<>());
-        TestContainer<String> spy = Mock.spy(temp);*/
-        Mock.when(spy.add("test")).thenReturn(false);
-        spy.add("test");
-        spy.add("test");
-        spy.forEach(System.out::println);
+        int offset = 2;
+        int gearToSet = 2;
 
-//        Car car = Mock.mock(Car.class);
-//        Integer arg11 = 5;
-//        Integer arg22 = 5;
-//        Mock.when(car.wrum(Matcher.any(), Matcher.eq("throw"), Matcher.any())).thenThrow(NullPointerException.class);
-//        Assertions.assertThrows(NullPointerException.class, () -> {
-//            System.out.println("before the cataclysm number 1");
-//            car.wrum(arg11, "throw", arg22);
-//            System.out.println("we survived!!! number 1");
-//        });
-//        Assertions.assertDoesNotThrow(() -> {
-//            System.out.println("before the cataclysm number 2");
-//            car.wrum(arg11, "notThrow", arg22);
-//            System.out.println("we survived!!! number 2");
-//        });
+        Mock.doAnswer(metadata -> {
+            Object[] arguments = metadata.getArguments();
+            Integer gear = (Integer) arguments[0];
+            ((Car) metadata.getMock()).gear = gearToSet + offset;
+            return Void.TYPE;
+        }).when(car).setGear(Matcher.anyInt());
 
-//        Car temp = Mockito.mock(Car.class);
-//        Mockito.when(temp.wrum(2, "test", 4));
-//        temp.wrum(2,"test", 4);
-//        Mockito.verify(temp, Mockito.times(2)).wrum(2,"test", 4);
+        car.setGear(gearToSet);
+
+        Assertions.assertEquals(gearToSet + offset, car.getGear());
     }
+
+    @Test
+    public void thenThrow() {
+        Car car = Mock.mock(Car.class);
+        Mock.when(car.getGear()).thenThrow(RuntimeException.class);
+
+        Assertions.assertThrows(RuntimeException.class, () -> {
+            car.getGear();
+        });
+    }
+
+    @Test
+    public void thenAnswerWithArgumentMatching() {
+        Car car = Mock.mock(Car.class);
+        Mock.doAnswer(metadata -> {
+            return Void.TYPE;
+        }).when(car).setGear(Matcher.eq(2));
+
+        car.setGear(1);
+        Assertions.assertEquals(1, car.getGear());
+        car.setGear(2);
+        Assertions.assertNotEquals(2, car.getGear());
+    }
+
+    @Test
+    public void chainedMockTest() {
+        Car car = Mock.mock(Car.class);
+        Mock.doReturn(1).when(car).getGear();
+        Mock.doReturn(2).when(car).getGear();
+        Mock.doThrow(RuntimeException.class).when(car).getGear();
+        Mock.doReturn(3).when(car).getGear();
+
+        Assertions.assertEquals(1, car.getGear());
+        Assertions.assertEquals(2, car.getGear());
+        Assertions.assertThrows(RuntimeException.class, () -> {
+            car.getGear();
+        });
+        Assertions.assertEquals(3, car.getGear());
+        Assertions.assertEquals(3, car.getGear());
+    }
+
+    @Test
+    public void verifyCertaiInvoked() {
+        Car car = Mock.mock(Car.class);
+        car.setGear(3);
+
+        Mock.verify(car).setGear(Matcher.anyInt());
+    }
+
+    @Test
+    public void verifyCertainArgumentsInvokedCertainAmountOfTimes() {
+        Car car = Mock.mock(Car.class);
+        car.setGear(3);
+        car.setGear(3);
+
+        Mock.verify(car, new InvokationTimesFilteredVerificationStrategy(2)).setGear(Matcher.eq(3));
+    }
+
+    @Test
+    public void verifyCertainArgumentsInvokedAtLeastAmountOfTimes() {
+        Car car = Mock.mock(Car.class);
+        car.setGear(3);
+        car.setGear(3);
+        car.setGear(3);
+
+        Mock.verify(car, new InvocationAtLeastFilteredVerificationStrategy(2)).setGear(Matcher.eq(3));
+    }
+
+    @Test
+    public void verifyCertainArgumentsInvokedAtLeastAmountOfTimesWithArgumentMatching() {
+        Car car = Mock.mock(Car.class);
+        car.setGear(3);
+        car.setGear(4);
+        car.setGear(3);
+        car.setGear(4);
+        car.setGear(5);
+        car.setGear(3);
+
+        Mock.verify(car, new InvocationAtLeastFilteredVerificationStrategy(2)).setGear(Matcher.eq(3));
+        Mock.verify(car, new InvokationTimesFilteredVerificationStrategy(2)).setGear(Matcher.eq(4));
+    }
+
+    @Test
+    public void captorTestOnSpy() {
+        Car car = new Car();
+        Car spy = Mock.spy(car);
+
+        ArgumentCaptor<String> captor = new ArgumentCaptor();
+
+        ConcurrentHashMap m = MockContainer.mockContainer;
+        spy.placeLuggage("test", 2);
+        spy.placeLuggage("test2", 3);
+        spy.placeLuggage("test3", 3);
+        Mock.verify(spy, new InvocationAtLeastFilteredVerificationStrategy(1)).placeLuggage(captor.capture(), 3);
+
+        List<String> itemsThatWerePlacedThreeTimesAtOnce = captor.getValues();
+        Assertions.assertEquals(List.of("test2", "test3"), itemsThatWerePlacedThreeTimesAtOnce);
+    }
+
+
+    @Test
+    public void multithreadingTest1() throws InterruptedException {
+        Car car = Mock.mock(Car.class);
+
+        Object lock = new Object();
+
+
+        Runnable task1 = () -> {
+            try {
+                synchronized (lock) {
+                    InvocationDetails<String> temp = Mock.when(car.threadTesting("thread1"));
+                    lock.notify();
+                    lock.wait();
+                    temp.thenReturn("thread1");
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        };
+
+        Runnable task2 = () -> {
+            try {
+                synchronized (lock) {
+                    lock.wait();
+                    Mock.when(car.threadTesting("thread2")).thenReturn("thread2");
+                    lock.notify();
+                }
+
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        };
+
+        Thread t1 =  new Thread(task2);
+        Thread t2 =  new Thread(task1);
+        t1.start();
+        t2.start();
+        t1.join();
+        t2.join();
+
+        Assertions.assertEquals("thread1", car.threadTesting("thread1"));
+        Assertions.assertEquals("thread2", car.threadTesting("thread2"));
+    }
+
+
 
 
 }

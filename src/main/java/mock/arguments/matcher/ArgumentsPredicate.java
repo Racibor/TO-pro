@@ -31,4 +31,17 @@ public class ArgumentsPredicate implements Predicate<CallMetadata> {
         }
         return true;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ArgumentsPredicate that = (ArgumentsPredicate) o;
+        return Objects.equals(predicateList, that.predicateList);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(predicateList);
+    }
 }
