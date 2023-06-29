@@ -13,7 +13,7 @@ The library as of now is capable of:
 - library supports simple multithreading with each of it's mocking process happening locally in a thread
 
 
-Below there are some examples you can follow. More detailed clarification is in a HowItWorks.MD file.
+Below there are some examples you can follow. More detailed clarification in a HowItWorks.MD file.
 # **Simple Mocking**
 
 example of making a Car class mock:
